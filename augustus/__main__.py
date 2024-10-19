@@ -27,11 +27,11 @@ logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 @click.group()
 @click.version_option()
-@click.option(
-    "-p",
-    "--pulsedive",
-    help="Include PulseDive data (Rate-limited to 9 queries a day)",
-)
+# @click.option(
+#     "-p",
+#     "--pulsedive",
+#     help="Include PulseDive data (Rate-limited to 9 queries a day)",
+# )
 def cli():
     "A comprehensive IOC enrichment tool from OSINT sources"
     
@@ -46,28 +46,28 @@ def version(verbose):
 @cli.command()
 @click.argument("ips")
 def ip(ips: str):
-    "Command description goes here"
+    "Command to enrich IP addresses"
     ips = ips.split(",") # type: ignore
 
     ipv4s = IPv4s(ips)
     ipv4s.load_all_ipv4s()
     for ipv4 in ipv4s.ipv4_objs:
         d = {
-            "ThreatMiner Data": ipv4.threatminer_data,
-            "SANS Data": ipv4.sans_data,
-            "Talos Data": ipv4.talos_data['reputation'],
-            "Pulsedive Data": ipv4.pulsedive_data,
-            "OTX Data": ipv4.otx_data,
-            "ThreadFox Data": ipv4.threatfox_data,
-            "URLHaus Data": ipv4.urlhaus_data
+            "threatminer": ipv4.threatminer_data,
+            "sans": ipv4.sans_data,
+            "talos": ipv4.talos_data['reputation'],
+            "pulsedive": ipv4.pulsedive_data,
+            "otx": ipv4.otx_data,
+            "threatfox": ipv4.threatfox_data,
+            "urlhaus": ipv4.urlhaus_data
         }
         
         # del d["Pulsedive Data"].properties
         
-        d['OTX Data']['']['pulse_info']['pulses'] = [
+        d['otx']['']['pulse_info']['pulses'] = [
             {
                 'name': pulse['name'], 'description': pulse['description']
-            } for pulse in d['OTX Data']['']['pulse_info']['pulses']]
+            } for pulse in d['otx']['']['pulse_info']['pulses']]
         
         with open("output.json", "w") as f:
             f.write(json.dumps(d, indent=4))

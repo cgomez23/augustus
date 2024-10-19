@@ -4,6 +4,15 @@
 
 A simple plug-n-play threat intel tool to quickly enrich IOCs.
 
+## Installation (Dev)
+Installation instructions for `augustus` dev mode
+
+Poetry
+1. `poetry lock`
+2. `poetry install`
+3. `poetry build`
+4. `poetry run augustus`
+
 ## Developing
 
 Run `make` for help

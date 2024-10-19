@@ -27,10 +27,6 @@ class IPv4(
             "urlhaus_data": self.search_urlhaus_host
         }
 
-    async def async_load_all_data(self):
-        tasks = [func(self.ipv4) for func in self.function_map.values()]
-        await asyncio.gather(*tasks)
-
 
 class IPv4s:
 
@@ -40,7 +36,11 @@ class IPv4s:
 
     async def _async_load_all_ipv4s(self):
         self.ipv4_objs = [IPv4(ipv4) for ipv4 in self.ipv4s]
-        tasks = [ipv4.async_load_all_data() for ipv4 in self.ipv4_objs]
+        tasks = [
+            func(ipv4.ipv4) 
+            for ipv4 in self.ipv4_objs 
+            for func in ipv4.function_map.values()
+        ]
         await asyncio.gather(*tasks)
 
     def load_all_ipv4s(self):
