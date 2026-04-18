@@ -11,8 +11,12 @@ DEFAULT_TIMEOUT = 10.0
 
 class AsyncClient(httpx.AsyncClient):
 
-    def __init__(self, timeout: float = DEFAULT_TIMEOUT) -> None:
-        super().__init__(timeout=httpx.Timeout(timeout))
+    def __init__(self, timeout: float = DEFAULT_TIMEOUT, user_agent: str | None = None) -> None:
+        headers = {"User-Agent": user_agent} if user_agent else {}
+        super().__init__(
+            timeout=httpx.Timeout(timeout),
+            headers=headers,
+        )
         self.transport = httpx.AsyncHTTPTransport(retries=3)
         self._request_timeout = timeout
 
