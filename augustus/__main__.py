@@ -6,7 +6,7 @@ import json
 
 import augustus
 
-from .src.iocs.ipv4 import IPv4s
+from .src.ioc.ipv4 import IPv4s
 
 if sys.stdout.isatty():
 # You're running in a real terminal
@@ -45,8 +45,8 @@ def version(verbose):
 
 @cli.command()
 @click.argument("ips")
-def ip(ips: str):
-    "Command to enrich IP addresses"
+def equery(ips: str):
+    "Command to enrich IOCs from all intel services."
     ips = ips.split(",") # type: ignore
 
     ipv4s = IPv4s(ips)
@@ -55,7 +55,7 @@ def ip(ips: str):
         d = {
             "threatminer": ipv4.threatminer_data,
             "sans": ipv4.sans_data,
-            "talos": ipv4.talos_data['reputation'],
+            "talos": ipv4.talos_data,
             "pulsedive": ipv4.pulsedive_data,
             "otx": ipv4.otx_data,
             "threatfox": ipv4.threatfox_data,
@@ -64,10 +64,10 @@ def ip(ips: str):
         
         # del d["Pulsedive Data"].properties
         
-        d['otx']['']['pulse_info']['pulses'] = [
-            {
-                'name': pulse['name'], 'description': pulse['description']
-            } for pulse in d['otx']['']['pulse_info']['pulses']]
+        # d['otx']['']['pulse_info']['pulses'] = [
+        #     {
+        #         'name': pulse['name'], 'description': pulse['description']
+        #     } for pulse in d['otx']['']['pulse_info']['pulses']]
         
         with open("output.json", "w") as f:
             f.write(json.dumps(d, indent=4))

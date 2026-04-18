@@ -10,7 +10,7 @@ FORMAT = "%(levelname)s %(message)s"
 
 # logging.root.setLevel(LOG_LEVEL)
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format=FORMAT,
     datefmt="[%X]",
     handlers=[RichHandler(tracebacks_suppress=[httpx, httpcore])]
@@ -26,7 +26,9 @@ class AsyncClient(httpx.AsyncClient):
     def __init__(self) -> None:
         super().__init__()
 
-        self.timeout = httpx.Timeout(30.0)
+        self.timeout = httpx.Timeout(10.0)
+        self.transport = httpx.AsyncHTTPTransport(retries=3)
+        
 
     async def get(self, url, **kwargs):
         """Override the get method to handle errors"""
@@ -39,10 +41,10 @@ class AsyncClient(httpx.AsyncClient):
         }
 
         try:
-            logger.info(f"{protocol.upper()} GET: {url} {kwargs}")
+            logger.debug(f"{protocol.upper()} GET: {url} {kwargs}")
             resp = await super().get(url, **kwargs)
             if 200 <= resp.status_code <= 299:
-                logger.info(f"[bold grey37 blink]{domain}[/]: Success {resp.status_code}: {endpoint} {kwargs}", extra={"markup": True})
+                logger.debug(f"[bold grey37 blink]{domain}[/]: Success {resp.status_code}: {endpoint} {kwargs}", extra={"markup": True})
                 return resp
             elif resp.status_code == 404:
                 logger.warning(f"[bold grey37 blink]{domain}[/]: Warning {resp.status_code} Not Found: {url}")
@@ -65,10 +67,10 @@ class AsyncClient(httpx.AsyncClient):
         }
 
         try:
-            logger.info(f"{protocol.upper()} POST: {url} {kwargs}")
+            logger.debug(f"{protocol.upper()} POST: {url} {kwargs}")
             resp = await super().post(url, **kwargs)
             if 200 <= resp.status_code <= 299:
-                logger.info(f"[bold grey37 blink]{domain}[/]: Success {resp.status_code}: {endpoint} {kwargs}", extra={"markup": True})
+                logger.debug(f"[bold grey37 blink]{domain}[/]: Success {resp.status_code}: {endpoint} {kwargs}", extra={"markup": True})
                 return resp
             elif resp.status_code == 404:
                 logger.warning(f"[bold grey37 blink]{domain}[/]: Warning {resp.status_code} Not Found: {url}")
