@@ -1,83 +1,69 @@
-import httpx, httpcore
+import time
+
+import httpx
 import logging
-# coloredlogs.install()
-# from colorlog import ColoredFormatter
-from rich.logging import RichHandler
 from urllib.parse import urlparse
 
-# FORMAT = "%(log_color)s%(asctime)s - %(log_color)s%(levelname)-8s%(reset)s %(log_color)s%(message)s"
-FORMAT = "%(levelname)s %(message)s"
+logger = logging.getLogger("augustus")
 
-# logging.root.setLevel(LOG_LEVEL)
-logging.basicConfig(
-    level=logging.DEBUG,
-    format=FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler(tracebacks_suppress=[httpx, httpcore])]
-)
-# formatter = ColoredFormatter(LOGFORMAT)
-logger = logging.getLogger('rich')
-logging.getLogger("httpx").setLevel(logging.CRITICAL)
-
+DEFAULT_TIMEOUT = 10.0
 
 
 class AsyncClient(httpx.AsyncClient):
 
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.timeout = httpx.Timeout(10.0)
+    def __init__(self, timeout: float = DEFAULT_TIMEOUT) -> None:
+        super().__init__(timeout=httpx.Timeout(timeout))
         self.transport = httpx.AsyncHTTPTransport(retries=3)
-        
+        self._request_timeout = timeout
 
     async def get(self, url, **kwargs):
-        """Override the get method to handle errors"""
-        protocol = urlparse(url).scheme
+        """Override the get method with retry-until-timeout behavior"""
         domain = urlparse(url).netloc
-        endpoint = urlparse(url).path + '?' + urlparse(url).query
+        deadline = time.monotonic() + self._request_timeout
 
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-        }
+        while True:
+            try:
+                resp = await super().get(url, **kwargs)
+                if 200 <= resp.status_code <= 299:
+                    logger.info(f"{domain}: GET {resp.status_code} {url}")
+                    return resp
+                elif resp.status_code == 404:
+                    logger.warning(f"{domain}: GET {resp.status_code} {url}")
+                    return httpx.Response(status_code=404, json={})
+                else:
+                    logger.error(f"{domain}: GET {resp.status_code} {url}")
+                    return httpx.Response(status_code=resp.status_code, json={})
+            except httpx.TimeoutException:
+                if time.monotonic() >= deadline:
+                    logger.error(f"{domain}: Timeout after {self._request_timeout}s {url}")
+                    return httpx.Response(status_code=500, json={})
+                logger.warning(f"{domain}: Timeout, retrying {url}")
+            except httpx.RequestError as e:
+                logger.error(f"{domain}: {type(e).__name__} {url}")
+                return httpx.Response(status_code=500, json={})
 
-        try:
-            logger.debug(f"{protocol.upper()} GET: {url} {kwargs}")
-            resp = await super().get(url, **kwargs)
-            if 200 <= resp.status_code <= 299:
-                logger.debug(f"[bold grey37 blink]{domain}[/]: Success {resp.status_code}: {endpoint} {kwargs}", extra={"markup": True})
-                return resp
-            elif resp.status_code == 404:
-                logger.warning(f"[bold grey37 blink]{domain}[/]: Warning {resp.status_code} Not Found: {url}")
-                return httpx.Response(status_code=404, json={})
-            else:
-                logger.error(f"[bold grey37 blink]{domain}[/]: Error {resp.status_code}: Unable to query {url}")
-                return httpx.Response(status_code=resp.status_code, json={})
-        except httpx.RequestError as e:
-            logger.critical(f"Critical: {resp.status_code} - {e}")
-            return httpx.Response(status_code=500, json={})
-        
     async def post(self, url, **kwargs):
-        """Override the get method to handle errors"""
-        protocol = urlparse(url).scheme
+        """Override the post method with retry-until-timeout behavior"""
         domain = urlparse(url).netloc
-        endpoint = urlparse(url).path + '?' + urlparse(url).query
+        deadline = time.monotonic() + self._request_timeout
 
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-        }
-
-        try:
-            logger.debug(f"{protocol.upper()} POST: {url} {kwargs}")
-            resp = await super().post(url, **kwargs)
-            if 200 <= resp.status_code <= 299:
-                logger.debug(f"[bold grey37 blink]{domain}[/]: Success {resp.status_code}: {endpoint} {kwargs}", extra={"markup": True})
-                return resp
-            elif resp.status_code == 404:
-                logger.warning(f"[bold grey37 blink]{domain}[/]: Warning {resp.status_code} Not Found: {url}")
-                return httpx.Response(status_code=404, json={})
-            else:
-                logger.error(f"[bold grey37 blink]{domain}[/]: Error {resp.status_code}: Unable to query {url}")
-                return httpx.Response(status_code=resp.status_code, json={})
-        except httpx.RequestError as e:
-            logger.critical(f"Critical: {resp.status_code} - {e}")
-            return httpx.Response(status_code=500, json={})
+        while True:
+            try:
+                resp = await super().post(url, **kwargs)
+                if 200 <= resp.status_code <= 299:
+                    logger.info(f"{domain}: POST {resp.status_code} {url}")
+                    return resp
+                elif resp.status_code == 404:
+                    logger.warning(f"{domain}: POST {resp.status_code} {url}")
+                    return httpx.Response(status_code=404, json={})
+                else:
+                    logger.error(f"{domain}: POST {resp.status_code} {url}")
+                    return httpx.Response(status_code=resp.status_code, json={})
+            except httpx.TimeoutException:
+                if time.monotonic() >= deadline:
+                    logger.error(f"{domain}: Timeout after {self._request_timeout}s {url}")
+                    return httpx.Response(status_code=500, json={})
+                logger.warning(f"{domain}: Timeout, retrying {url}")
+            except httpx.RequestError as e:
+                logger.error(f"{domain}: {type(e).__name__} {url}")
+                return httpx.Response(status_code=500, json={})
