@@ -4,4 +4,3 @@ from .talos import Talos
 from .pulsedive import Pulsedive
 from .otx import OTX
 from .malwarebazaar import MalwareBazaar
-from .shodan import Shodan

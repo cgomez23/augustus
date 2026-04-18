@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
-from ..osint.nokey import Pulsedive, ThreatMiner, SANS, Talos, OTX, Shodan
-from ..osint.key import ThreatFox, URLHaus
+from ..osint.nokey import Pulsedive, ThreatMiner, SANS, Talos, OTX
+from ..osint.key import ThreatFox, URLHaus, Shodan
 from ..config import get_api_key
 
 logger = logging.getLogger("augustus")
@@ -28,8 +28,13 @@ class IPv4(
             "talos_data": self.get_talos_ip_data,
             "pulsedive_data": self.get_pulsedive_ip_data,
             "otx_data": self.get_otx_ip_data,
-            "shodan_data": self.get_shodan_ip_data,
         }
+
+        shodan_key = get_api_key("shodan")
+        if shodan_key:
+            self._shodan_api_key = shodan_key
+            self.function_map["shodan_data"] = self.get_shodan_ip_data
+            logger.info("Shodan API key found, enabling Shodan enrichment")
 
         threatfox_key = get_api_key("threatfox")
         if threatfox_key:
